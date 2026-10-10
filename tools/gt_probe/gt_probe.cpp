@@ -65,9 +65,25 @@ int main(int argc, char **argv)
     printf("[connecting to %s:%d]\n", host, port);
 
     bool connected = false, first = true, sent_tank = false, sent_enter = false, sent_join = false, sent_trade_accept = false, sent_trade_ui_seen = false, sent_trade_ready = false;
+    bool chat_sent = false;
+    std::chrono::steady_clock::time_point join_world_time;
     auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(20);
     while (std::chrono::steady_clock::now() < deadline)
     {
+        // time-based chat send (doesn't block the event loop)
+        if (sent_join && !chat_sent && chat_text[0] &&
+            std::chrono::steady_clock::now() - join_world_time >= std::chrono::seconds(chat_delay))
+        {
+            chat_sent = true;
+            std::string cpayload = "action|input|text|" + std::string(chat_text);
+            ENetPacket *p2 = enet_packet_create(nullptr, 4 + cpayload.size() + 1, ENET_PACKET_FLAG_RELIABLE);
+            p2->data[0] = 2;
+            std::memset(p2->data + 1, 0, 3);
+            std::memcpy(p2->data + 4, cpayload.data(), cpayload.size());
+            p2->data[4 + cpayload.size()] = 0;
+            printf("[chat sent: %s]\n", chat_text);
+            enet_peer_send(peer, 0, p2);
+        }
         ENetEvent event;
         while (enet_host_service(client, &event, 100) > 0)
         {
@@ -183,17 +199,8 @@ int main(int argc, char **argv)
                         p->data[4 + payload.size()] = 0;
                         printf("[4/4 join_request START sent]\n");
                         enet_peer_send(peer, 0, p);
-                        if (chat_text[0]) {
-                            if (chat_delay > 0) std::this_thread::sleep_for(std::chrono::seconds(chat_delay));
-                            std::string cpayload = "action|input|text|" + std::string(chat_text);
-                            ENetPacket *p2 = enet_packet_create(nullptr, 4 + cpayload.size() + 1, ENET_PACKET_FLAG_RELIABLE);
-                            p2->data[0] = 2;
-                            std::memset(p2->data + 1, 0, 3);
-                            std::memcpy(p2->data + 4, cpayload.data(), cpayload.size());
-                            p2->data[4 + cpayload.size()] = 0;
-                            printf("[chat sent: %s]\n", chat_text);
-                            enet_peer_send(peer, 0, p2);
-                        }
+                        join_world_time = std::chrono::steady_clock::now();
+                        if (!chat_text[0]) chat_sent = true; // @note no chat to send
                     }
                     if (body.find("OnSetCurrentWorld") != std::string::npos || body.find("OnSpawn") != std::string::npos)
                         printf(">>> IN-WORLD CONFIRMED <<<\n");
