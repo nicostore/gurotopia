@@ -95,8 +95,6 @@ void peer::mysql_select_all()
     this->level[1]   = static_cast<u_short>(this->mysql_select<signed>("xp"));
     this->gems       = this->mysql_select<signed>("gems");
     this->home_world = this->mysql_select<std::string>("home_world");
-    printf("[DEBUG load] uid=%d growid=%s level=%d xp=%d gems=%d home='%s'\n",
-        this->user_id, this->growid.c_str(), this->level[0], this->level[1], this->gems, this->home_world.c_str());
 
     auto blob = this->mysql_select<std::vector<u_char>>("inventory");
     const u_char *u8 = blob.data();
@@ -152,8 +150,6 @@ bool peer::load(const std::string &growid, const std::string &password)
 
 peer::~peer()
 {
-    printf("[DEBUG ~peer] growid=%s level=%d xp=%d gems=%d home='%s'\n",
-        this->growid.c_str(), this->level[0], this->level[1], this->gems, this->home_world.c_str());
     this->mysql_update<std::vector<u_char>>("inventory", this->serialize_inventory().data());
 
     /* @note persistent progress */

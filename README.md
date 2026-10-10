@@ -1,133 +1,45 @@
-<div align="center">
+# Gurotopia — Custom GTPS
 
-**グロートピア** *(Gurotopia)* : Lightweight & Maintained GTPS written in C/C++
+Gurotopia is an open-source Growtopia private server written in modern C/C++.
+This fork adds features verified through an ENet test-client (`tools/gt_probe`) —
+no real client needed to develop.
 
-[![](https://github.com/GT-api/GT.api/actions/workflows/make.yml/badge.svg)](https://github.com/GT-api/GT.api/actions/workflows/make.yml)
-[![Dockerfile](https://github.com/gurotopia/Gurotopia/actions/workflows/docker.yml/badge.svg)](https://github.com/gurotopia/Gurotopia/actions/workflows/docker.yml)
-[![](https://app.codacy.com/project/badge/Grade/fa8603d6ec2b4485b8e24817ef23ca21)](https://app.codacy.com/gh/gurotopia/Gurotopia/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
-[![](https://dcbadge.limes.pink/api/server/zzWHgzaF7J?style=flat)](https://discord.gg/zzWHgzaF7J)
+## Build (Linux/Debian)
 
-</div>
+```bash
+sudo apt-get install build-essential libssl-dev libmariadb-dev mariadb-server
+# GCC 13+ required (uses <format>): add ubuntu-toolchain-r/test PPA, then:
+sudo apt-get install g++-13
+git clone https://github.com/NousResearch-CN/gurotopia.git   # (repo kontribusi kamu)
+cd Gurotopia
+make -j$(nproc)          # atau: PATH=<dir-gcc13>:$PATH make -j$(nproc)
+sudo ./main.out          # port 443 (sudo) + 17091 UDP
+```
 
----
-# <img width="250" height="53" alt="image" src="https://github.com/user-attachments/assets/0a3bee67-ad6c-4e4c-bd0e-aed89d9b5c09" />
+Butuh `items.dat` (dari client) di folder repo — versi format 0x1a+ didukung.
 
-### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/archive.svg) 1. Requirements
-   - [**MSYS2**](https://www.msys2.org/)
-   - [**Visual Studio Code**](https://code.visualstudio.com/): install [C/C++ extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) for VSCode
-   - [**MariaDB Server**](https://mariadb.org/download/?t=mariadb&p=mariadb&r=12.2.2&os=windows&cpu=x86_64&pkg=msi&mirror=accretive)
+## Features (beyond stock gurotopia)
 
-### 2. Setup MSYS2
-   - Locate your MSYS2 folder at `C:\msys64`, open `ucrt64.exe`, and run the following command:
-   
-     ```bash
-     pacman -S --needed mingw-w64-ucrt-x86_64-{gcc,openssl} make
-     ```
+- **Trade system penuh** — `/trade <name>` → request dialog → live 2-side UI
+  → item picker (ownership-checked) → ready both sides → real item exchange
+- **Autosave crash-safety** — world + inventory persisted every 30s; survives kill -9
+- **Password verification** — wrong password → `logon_fail` (account-hijack fix)
+- **Duplicate-login guard** — relogin kicks the old session
+- **Progress persistence** — level / XP / gems / home_world survive reconnect
+- **Admin/moderator** — `admins.txt` (one growid per line):
+  - `/kick <name>`, `/ban <name>`, `/unban <name>`, `/give <name> <item> <count>`
+- **Social** — `/msg <name> <text>` (PM), `/online`, `/home` (warp), `/sethome`
+  (in owned world), `/trade`
+- **Banned accounts** — `banned.txt`, enforced at both login phases
 
-### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/build.svg) 3. Compile
-   - Open the project folder in Visual Studio Code.
-   - Press **`Ctrl + Shift + B`** to start the build process.
+## Dev harness
 
-### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/debug-alt-small.svg) 4. Run
-   - After compiling, press **`F5`** to run the server!
+`tools/gt_probe/gt_probe.cpp` — ENet client simulating the GT login flow
+(connect → protocol/ltoken → tankIDName → enter_game → join_request) plus
+scriptable chat/dialog actions. Build it against the ZTzTopia/enet fork
+bundle to talk to the server's new-packet wire format.
 
-# <img src="https://github.com/user-attachments/assets/fecde323-04c5-4b82-a08d-badcb184be6a" width="30" /> Linux
+## Serialization notes
 
-### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/archive.svg) 1. Install Dependencies
-
-- Enter command associated with your distribution into the terminal to install nessesary tools.
-   <details><summary><img width="22" height="22" src="https://github.com/user-attachments/assets/8359ba6e-a9b2-4500-893f-61eaf40e2478" /> Arch</summary>
-   <p>
-      
-   ```bash
-   sudo pacman -S base-devel openssl mariadb-libs
-   ```
-   </p>
-   </details> 
-   <details><summary><img width="22" height="22" src="https://github.com/user-attachments/assets/742f35c4-3e69-450e-8095-9fabe9ecd0d8" /> Debian <img width="18" height="18" src="https://github.com/user-attachments/assets/46f0770e-f4ed-480b-851d-c90b05fae52f" /> Ubuntu</summary>
-   <p>
-      
-   ```bash
-   sudo apt-get update && sudo apt-get install build-essential libssl-dev libmariadb-dev
-   ```
-        
-   </p>
-   </details> 
-### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/build.svg) 2. Compile
-   - Navigate to the project's root directory in your terminal and run the `make` command:
-   
-     ```bash
-     make -j$(nproc)
-     ```
-### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/debug-alt-small.svg) 3. Run
-   - Execute the compiled binary located in the `main` directory:
-   
-     ```bash
-     ./main.out
-     ```
-# macOS
-
-> [!NOTE]
-> macOS builds are only tested on Intel (`x86_64`). Apple Silicon is not tested yet.
-> `include/enet/lib/libenet_macos.a` is a universal (`x86_64` + `arm64`) archive, so it should still link on Apple Silicon.
-
-### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/archive.svg) 1. Install Dependencies
-
-- Install [Homebrew](https://brew.sh/) or [MacPorts](https://www.macports.org/install.php), then run the matching command. Mixing is fine: MacPorts GCC with Homebrew OpenSSL and MariaDB uses the Homebrew compile command.
-   <details><summary>Homebrew</summary>
-   <p>
-      
-   ```bash
-   brew install gcc make openssl@3 mariadb-connector-c
-   ```
-   </p>
-   </details>
-   <details><summary>MacPorts</summary>
-   <p>
-      
-   ```bash
-   sudo port install gcc15 gmake openssl3 mariadb-11.4
-   ```
-   </p>
-   </details>
-
-### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/build.svg) 2. Compile
-
-- Apple's SDK does not include OpenSSL headers. Pass Homebrew or MacPorts paths on the `make` line. A plain `make` fails with `openssl/ssl.h: No such file or directory`. Use `-lenet_macos`; the default `-lenet` is a Linux library.
-   <details><summary>Homebrew</summary>
-   <p>
-      
-   ```bash
-   make -j$(sysctl -n hw.ncpu) \
-     includes="-Iinclude -Ibuild/include -I$(brew --prefix openssl@3)/include" \
-     libraries="-L$(brew --prefix openssl@3)/lib -L$(brew --prefix mariadb-connector-c)/lib -L./include/enet/lib -L./include/mysql/lib -lssl -lcrypto -lmariadb -lenet_macos"
-   ```
-   </p>
-   </details>
-   <details><summary>MacPorts</summary>
-   <p>
-      
-   ```bash
-   gmake -j$(sysctl -n hw.ncpu) \
-     includes="-Iinclude -Ibuild/include -I/opt/local/libexec/openssl3/include" \
-     libraries="-L/opt/local/libexec/openssl3/lib -L/opt/local/lib/mariadb-11.4/mysql -L./include/enet/lib -L./include/mysql/lib -lssl -lcrypto -lmariadb -lenet_macos"
-   ```
-   </p>
-   </details>
-
-### ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/debug-alt-small.svg) 3. Run
-   - Execute the compiled binary:
-   
-     ```bash
-     ./main.out
-     ```
-# ![](https://raw.githubusercontent.com/microsoft/vscode-icons/main/icons/dark/settings.svg) Local Server Configuration
-
-> [!NOTE]
-> To connect to your local server, you must modify your system's **hosts** file.
-> - **Windows**: `C:\Windows\System32\drivers\etc\hosts`
-> - **Linux/macOS**: `/etc/hosts`
-> ```
-> 127.0.0.1 www.growtopia1.com
-> 127.0.0.1 www.growtopia2.com
-> ```
+- Game packets: type byte 2 = text (4-byte header + payload + NUL),
+  type 4 = variant list (compressed); tank packets per GT protocol.
