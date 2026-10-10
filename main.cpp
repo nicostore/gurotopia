@@ -9,6 +9,7 @@
 #include "include/https/https.hpp" // @note https::listener()
 #include "include/https/server_data.hpp" // @note gServer_data
 #include "include/database/database_config.hpp" // @note load_database_config(), gDatabase_config
+#include "include/database/world.hpp" // @note save_all_worlds()
 #include "include/automate/holiday.hpp" // @note holiday
 #include <csignal>
 
@@ -46,6 +47,16 @@ int main()
     decode_items();      // @note reads items.dat into legible class members (id, item name, ect)
     parse_store();       // @todo thread loop this so the store can update without restarting server (stored in .\resource\store.txt)
     check_for_holiday(); // @note check for any holidays using local time (your VPS or local time) - @todo thread loop so it can change the holiday without restarting
+
+    /* autosave: persist all loaded worlds periodically (crash-safe), plus flush every 10s */
+    std::thread autosave([]{
+        while (!gSignal)
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(30));
+            save_all_worlds();
+        }
+    });
+    autosave.detach();
 
     ENetEvent event{};
     while (!gSignal)

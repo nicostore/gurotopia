@@ -316,6 +316,12 @@ world::world(const std::string &name) : name(name)/*DEFAULT*/
 }
 world::~world()
 {
+    this->save(); // @note persistence moved to world::save() so autosave can reuse it
+}
+
+
+void world::save()
+{
     this->mysql_update("owner", this->owner);
     {
         ::blob blob;
@@ -369,6 +375,12 @@ world::~world()
         this->mysql_update("objects", blob.data());
     }
 }
+
+void save_all_worlds()
+{
+    for (::world &world : worlds) world.save();
+}
+
 
 std::vector<world> worlds;
 

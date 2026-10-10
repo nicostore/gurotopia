@@ -144,6 +144,7 @@ public:
     template<typename T>
     T    mysql_select(const std::string &column, const std::string &arg = "");
     void mysql_select_all();
+    void save(); // @note persist world to DB (blocks/objects/owner)
 
     std::string name{};
 
@@ -171,6 +172,7 @@ public:
     ::blob serialize();
 };
 extern std::vector<world> worlds;
+extern void save_all_worlds();
 
 extern void send_action(ENetPeer &p, const std::string &action, const std::string &str);
 

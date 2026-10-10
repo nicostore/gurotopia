@@ -108,6 +108,7 @@ public:
 
     ::pos pos{}; // @note position 1D {x, y}
     ::pos rest_pos{}; // @note respawn position {x, y}
+    std::string home_world{}; // @note /sethome world name ("" = unset)
     bool facing_left{}; // @note peer is directed towards the left direction
     short pain_hp{ 10 };
 
