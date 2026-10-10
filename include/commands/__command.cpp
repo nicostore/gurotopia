@@ -13,6 +13,7 @@
 #include "ghost.hpp"
 #include "social.hpp"
 #include "kick.hpp"
+#include "admin_actions.hpp"
 #include "../action/trade.hpp"
 #include "__command.hpp"
 
@@ -30,8 +31,8 @@ static constexpr std::string_view named_help =
     "/time /sb {msg} /find /warp {world} /punch {id} /skin {id} /who /me {msg} "
     "/news /weather {id} /ghost";
 
-std::array<std::string_view, 9> cmd_requires_arg{
-    "sb", "warp", "punch", "skin", "me", "weather", "trade", "msg", "kick"
+std::array<std::string_view, 12> cmd_requires_arg{
+    "sb", "warp", "punch", "skin", "me", "weather", "trade", "msg", "kick", "ban", "unban", "give"
 };
 
 /* if you plan to use this outside of this file, please include in __command.hpp (^-^) - and just make it a void. */
@@ -66,7 +67,10 @@ std::unordered_map<std::string_view, std::function<void(ENetEvent&, const std::s
         {"sethome", &sethome},
         {"msg", &msg},
         {"online", &online},
-        {"kick", &kick}
+        {"kick", &kick},
+        {"ban", &ban},
+        {"unban", &unban},
+        {"give", &give}
     };
 
     for (std::string_view emote : emotes)

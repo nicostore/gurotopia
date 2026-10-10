@@ -1,6 +1,7 @@
 #include "pch.hpp"
 #include "https/server_data.hpp"
 #include "proton/Variant.hpp"
+#include "commands/admin_actions.hpp"
 
 #include "protocol.hpp"
 
@@ -38,6 +39,11 @@ void action::protocol(ENetEvent& event, const std::string& header)
     {
         send_action(*event.peer, "logon_fail", "");
         return;
+    }
+    if (is_banned(pPeer->growid))
+    {
+        send_action(*event.peer, "logon_fail", "");
+        return; // @note banned accounts never receive OnSendToServer
     }
 
     send_varlist(event.peer, {

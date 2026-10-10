@@ -1,5 +1,7 @@
 #include "pch.hpp"
 #include "automate/holiday.hpp"
+#include "commands/admin_actions.hpp"
+#include "onVariant/ConsoleMessage.hpp"
 
 #include "tankIDName.hpp"
 
@@ -22,6 +24,13 @@ void action::tankIDName(ENetEvent& event, const std::string& header)
         else if (pipes[i] == "user")       pPeer->user_id = std::stoi(pipes[i+1]); // @todo validate user_id
     }
     if (atoi(protocol.c_str()) == 0) return; // @todo <226
+
+    if (is_banned(pPeer->growid))
+    {
+        send_action(*event.peer, "logon_fail", "");
+        on::ConsoleMessage(event.peer, "`4Your account has been banned.``");
+        return;
+    }
 
     /* @note the ACTUAL loading. the one in protocol.cpp must be removed for performance.
      *       load() returns false when the account exists but the password is wrong. */
