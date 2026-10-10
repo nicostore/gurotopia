@@ -46,6 +46,19 @@ void action::protocol(ENetEvent& event, const std::string& header)
         return; // @note banned accounts never receive OnSendToServer
     }
 
+    /* @note duplicate-login guard: if this account is already connected, kick the
+     *       old session so its (stale) peer object can't later clobber this login's
+     *       saves. Mirrors real GetGrowtopia behavior. */
+    peers("", PEER_ALL, [&](ENetPeer& peer)
+    {
+        ::peer *pOther = static_cast<::peer*>(peer.data);
+        if (pOther && pOther->user_id == pPeer->user_id && &peer != event.peer)
+        {
+            send_action(peer, "log", "msg|`4Logged in from another connection.``");
+            enet_peer_disconnect_later(&peer, 0); // @note old peer removed -> destructor saves current state
+        }
+    });
+
     send_varlist(event.peer, {
         "OnSendToServer", 
         (signed)gServer_data.port, 

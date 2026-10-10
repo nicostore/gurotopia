@@ -218,7 +218,21 @@ int main(int argc, char **argv)
             break; // let it run, then time out
     }
 
+    printf("[disconnecting...]\n");
     enet_peer_disconnect(peer, 0);
+    /* wait for the server to acknowledge before destroying — otherwise the
+     * connection dies as an unacked reset and the server's peer lingers until
+     * timeout, then its stale destructor can clobber newer DB writes. */
+    auto disc_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(4);
+    while (std::chrono::steady_clock::now() < disc_deadline)
+    {
+        ENetEvent event;
+        if (enet_host_service(client, &event, 100) > 0 && event.type == ENET_EVENT_TYPE_DISCONNECT)
+        {
+            printf("[server acked disconnect]\n");
+            break;
+        }
+    }
     enet_host_destroy(client);
     enet_deinitialize();
     printf("[done]\n");

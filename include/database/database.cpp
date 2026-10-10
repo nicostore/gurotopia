@@ -26,6 +26,18 @@ void create_table_if_not_exist()
     {
         std::fprintf(stderr, "%s\n", mysql_error(db));
     }
+
+    /* @note migration: add persistence columns (MariaDB supports ADD COLUMN IF NOT EXISTS).
+     *       level/xp/gems/home_world were never saved before — accounts keep them now. */
+    static constexpr std::array<const char*, 5> peer_columns{
+        "ALTER TABLE peer ADD COLUMN IF NOT EXISTS level INT DEFAULT 1",
+        "ALTER TABLE peer ADD COLUMN IF NOT EXISTS xp INT DEFAULT 0",
+        "ALTER TABLE peer ADD COLUMN IF NOT EXISTS gems INT DEFAULT 0",
+        "ALTER TABLE peer ADD COLUMN IF NOT EXISTS home_world VARCHAR(24) NOT NULL DEFAULT ''",
+        "ALTER TABLE peer ADD COLUMN IF NOT EXISTS chat_color INT DEFAULT 0"
+    };
+    for (const char *q : peer_columns)
+        if (mysql_query(db, q)) std::fprintf(stderr, "[MariaDB migration] %s\n", mysql_error(db));
 }
 
 void mysql_connect()
