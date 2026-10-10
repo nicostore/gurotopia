@@ -39,6 +39,7 @@ static void dump_packet(ENetPacket *p)
 int main(int argc, char **argv)
 {
     const char *chat_text = (argc>5)? argv[5] : "";
+    const int chat_delay = (argc>6)? atoi(argv[6]) : 0;
     const char *host = (argc>1)? argv[1] : "127.0.0.1";
     int port = (argc>2)? atoi(argv[2]) : 17091;
     const char *growid = (argc>3)? argv[3] : "probe_user";
@@ -63,7 +64,7 @@ int main(int argc, char **argv)
     if (!peer) { fprintf(stderr, "connect failed\n"); return 1; }
     printf("[connecting to %s:%d]\n", host, port);
 
-    bool connected = false, first = true, sent_tank = false, sent_enter = false, sent_join = false;
+    bool connected = false, first = true, sent_tank = false, sent_enter = false, sent_join = false, sent_trade_accept = false, sent_trade_ui_seen = false, sent_trade_ready = false;
     auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(20);
     while (std::chrono::steady_clock::now() < deadline)
     {
@@ -134,6 +135,43 @@ int main(int argc, char **argv)
                         printf("[3/3 enter_game sent]\n");
                         enet_peer_send(peer, 0, p);
                     }
+                    // -- trade automation --
+                    if (body.find("wants to trade with you") != std::string::npos && !sent_trade_accept)
+                    {
+                        sent_trade_accept = true;
+                        std::string payload = "action|dialog_return\ndialog_name|trade\nbuttonClicked|accept\ntype|trade";
+                        ENetPacket *p = enet_packet_create(nullptr, 4 + payload.size() + 1, ENET_PACKET_FLAG_RELIABLE);
+                        p->data[0] = 2; std::memset(p->data + 1, 0, 3);
+                        std::memcpy(p->data + 4, payload.data(), payload.size());
+                        p->data[4 + payload.size()] = 0;
+                        printf("[auto-accept trade]\n");
+                        enet_peer_send(peer, 0, p);
+                    }
+                    if (body.find("Trading with") != std::string::npos && !sent_trade_ui_seen)
+                    {
+                        sent_trade_ui_seen = true;
+                        /* add a Wrench (starter item 32) to the offer */
+                        std::string payload = "action|dialog_return\ndialog_name|trade_ui\nbuttonClicked|searchableItemListButton_0_32_1";
+                        ENetPacket *p = enet_packet_create(nullptr, 4 + payload.size() + 1, ENET_PACKET_FLAG_RELIABLE);
+                        p->data[0] = 2; std::memset(p->data + 1, 0, 3);
+                        std::memcpy(p->data + 4, payload.data(), payload.size());
+                        p->data[4 + payload.size()] = 0;
+                        printf("[trade offer: wrench]\n");
+                        enet_peer_send(peer, 0, p);
+                    }
+                    if (body.find("Trading with") != std::string::npos && sent_trade_ui_seen && !sent_trade_ready && body.find("You offer") != std::string::npos && body.find("Wrench") != std::string::npos)
+                    {
+                        sent_trade_ready = true;
+                        std::string payload = "action|dialog_return\ndialog_name|trade_ui\nbuttonClicked|ready";
+                        ENetPacket *p = enet_packet_create(nullptr, 4 + payload.size() + 1, ENET_PACKET_FLAG_RELIABLE);
+                        p->data[0] = 2; std::memset(p->data + 1, 0, 3);
+                        std::memcpy(p->data + 4, payload.data(), payload.size());
+                        p->data[4 + payload.size()] = 0;
+                        printf("[trade ready]\n");
+                        enet_peer_send(peer, 0, p);
+                    }
+                    if (body.find("Trade with") != std::string::npos && body.find("complete") != std::string::npos)
+                        printf(">>> TRADE COMPLETE <<<\n");
                     if (body.find("OnRequestWorldSelectMenu") != std::string::npos && !sent_join && sent_enter)
                     {
                         sent_join = true;
@@ -146,6 +184,7 @@ int main(int argc, char **argv)
                         printf("[4/4 join_request START sent]\n");
                         enet_peer_send(peer, 0, p);
                         if (chat_text[0]) {
+                            if (chat_delay > 0) std::this_thread::sleep_for(std::chrono::seconds(chat_delay));
                             std::string cpayload = "action|input|text|" + std::string(chat_text);
                             ENetPacket *p2 = enet_packet_create(nullptr, 4 + cpayload.size() + 1, ENET_PACKET_FLAG_RELIABLE);
                             p2->data[0] = 2;

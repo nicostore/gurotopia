@@ -34,4 +34,5 @@ std::unordered_map<std::string, std::function<void(ENetEvent &, const ::hPipe &)
     {"megaphone", std::bind(&megaphone, std::placeholders::_1, std::placeholders::_2)},
 
     {"trade", std::bind(&trade_dialog_return, std::placeholders::_1, std::placeholders::_2)},
+    {"trade_ui", std::bind(&trade_ui_return, std::placeholders::_1, std::placeholders::_2)},
 };
