@@ -34,7 +34,11 @@ void action::protocol(ENetEvent& event, const std::string& header)
         send_action(*event.peer, "logon_fail", "");
         return; // @note stop processing invalid protocol data
     }
-    pPeer->load(pPeer->growid, pPeer->password); // @todo i want remove this tbh. since we only are fetching user_id which seems a waste.
+    if (!pPeer->load(pPeer->growid, pPeer->password))
+    {
+        send_action(*event.peer, "logon_fail", "");
+        return;
+    }
 
     send_varlist(event.peer, {
         "OnSendToServer", 

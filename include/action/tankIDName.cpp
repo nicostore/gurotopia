@@ -23,7 +23,13 @@ void action::tankIDName(ENetEvent& event, const std::string& header)
     }
     if (atoi(protocol.c_str()) == 0) return; // @todo <226
 
-    pPeer->load(pPeer->growid, pPeer->password); // @note the ACTUAL loading. the one in protocol.cpp must be removed for performance...
+    /* @note the ACTUAL loading. the one in protocol.cpp must be removed for performance.
+     *       load() returns false when the account exists but the password is wrong. */
+    if (!pPeer->load(pPeer->growid, pPeer->password))
+    {
+        send_action(*event.peer, "logon_fail", "");
+        return;
+    }
 
     send_varlist(event.peer, { "OnOverrideGDPRFromServer", 18, 1, 0, 1 });
 

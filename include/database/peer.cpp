@@ -117,9 +117,9 @@ void peer::mysql_select_all()
     return blob;
 }
 
-void peer::load(const std::string &growid, const std::string &password)
+bool peer::load(const std::string &growid, const std::string &password)
 {
-    if (!this->exists(growid)) 
+    if (!this->exists(growid))
     {
         this->mysql_insert("growid", growid);
         this->mysql_update("password", password);
@@ -130,7 +130,16 @@ void peer::load(const std::string &growid, const std::string &password)
         this->slots[2ull] = ::slot{9640, 1}; // @note My First World Lock
         this->mysql_update<std::vector<u_char>>("inventory", this->serialize_inventory().data());
     }
+    else
+    {
+        /* @note verify password BEFORE loading anything — otherwise anyone could
+         *       hijack any account by just knowing the growid (real GT security). */
+        this->growid = growid;
+        const std::string db_pass = this->mysql_select<std::string>("password");
+        if (db_pass != password) return false;
+    }
     this->mysql_select_all();
+    return true;
 }
 
 peer::~peer()
